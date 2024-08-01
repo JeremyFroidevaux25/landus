@@ -1,18 +1,21 @@
 #----- load tables
 
+setwd("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus")
+list.files(recursive = TRUE)
+
 library(openxlsx)
-releves = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
+releves = read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
 head(releves)
 
-soil = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_SOIL_SAISIE")
+soil = read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_SOIL_SAISIE")
 head(soil)
 
-biomass = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_BIOMASS")
+biomass = read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_BIOMASS")
 head(biomass)
 
 hcan = biomass %>% group_by(plot_project) %>% summarise(hcan = mean(height), heterog = sd(height))
 
-pfg =read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_PPFG_SUMMARY")
+pfg =read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "PROTOCOL_PPFG_SUMMARY")
 head(pfg)
 
 #----- shape table PFG
@@ -82,7 +85,7 @@ pfg_large2 = pfg_large %>% filter(group != "")
 
 ## nb en selectionnant 25%, seuls LVU, LRF, LVVI, LCV et LVM sortent seuls
 
-write.csv(val_brutes,"/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/landus_20231109.csv")
+write.csv(val_brutes,"/data/output/landus_20231109.csv")
 
 #------ quick visu community data
 library(vegan)

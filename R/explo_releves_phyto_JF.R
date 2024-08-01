@@ -7,7 +7,10 @@
 ############## Partie 1: calcul des indices de diversité sur toutes les stations
 ##############################################################################################
 
-dat_phyto = fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/export_cbna_crea.csv")
+setwd("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus")
+list.files(recursive = TRUE)
+
+dat_phyto = fread("data/CBNA/export_cbna_crea.csv")
 #dat_phyto$id<-1
 
 dat_phyto$abondance[dat_phyto$abondance== '+'] <- '0.5'
@@ -38,7 +41,7 @@ df2<- df1 %>% select(id_releve,richness,simpson,shannon)
 
 #### essai avec NA si abondance non estimée quantitativement
 
-dat_phyto2 = fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/export_cbna_crea.csv")
+dat_phyto2 = fread("data/CBNA/export_cbna_crea.csv")
 
 dat_phyto2$abondance[dat_phyto2$abondance== '+'] <- 'NA'
 dat_phyto2$abondance[dat_phyto2$abondance== ''] <- 'NA'
@@ -71,7 +74,7 @@ df2<- df1 %>% select(id_releve,richness,simpson,shannon)
 ############## Partie 2: focus sur les stations d'intérêts
 ##############################################################################################
 
-dat_phyto = fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/export_cbna_crea.csv")
+dat_phyto = fread("data/CBNA/export_cbna_crea.csv")
 
 dat = dat_phyto %>% select(x_l93, y_l93,lon_wgs84,lat_wgs84,alti_calc, lib_exposition, pente, abondance, rec_total_pl, rec_herba_pl, rec_arbo_pl, rec_arbu_pl, rec_sarb_pl, rec_crypto_pl, haut_herba, haut_arbo, haut_arbu, haut_sarb, lib_syntaxon, nom_reconnu, id_releve, plage_pente, comm_milieu)
 str(dat)
