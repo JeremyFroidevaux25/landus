@@ -8,6 +8,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus")
 rm(list=ls()) 
 ```
 
@@ -23,21 +24,20 @@ lapply(library, require, character.only = TRUE)
 ### Part 1: Extract landuse proportion from ORION at local and landscape scales
 
 ```{r}
-root <- "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/R_Functions/" 
-source(paste(root,"ExtractBufferRaster_KB_JF.r",sep="")) 
+source("function/ExtractBufferRaster_KB_JF.R")
 
-extractLandUseRaster( dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/data/gis" ,  
+extractLandUseRaster( dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/data/grille_MB" ,  
                                 name.points = "grid_MB_lande",
                                 bw = c(20,250), #ajouter 20 m - 250 m  
                                 id = "id_grid",  
                                 dir.posEnvironmentalLayers = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif",  
-                                WorkingDirectory = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/") 
+                                WorkingDirectory = "output/") 
 ```
 
 ### Part 2: Extract data on landscape configurational and compositional diversity using ORION
 
 ```{r}
-dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/data/gis"  
+dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/data/grille_MB"  
 name.points = "grid_MB_lande"
 loc<-st_read(dsn = dir.posPoints, layer = name.points)
 loc <- st_transform(loc,crs=32632)
@@ -84,16 +84,16 @@ divf<-df_list %>% reduce(full_join, by='plot_id')
 divf<-divf %>% dplyr::select(-contains("scale"))
 colnames(divf)[colnames(divf) == "plot_id"] <- "id"
 
-write.csv(divf, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landscapeMetric_outputVCMsel.csv", row.names=FALSE) 
+write.csv(divf, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/output/landscapeMetric_outputVCMsel.csv", row.names=FALSE) 
 
 ```
 
 ### Part 3: Merge datasets to get one single file 
 
 ```{r}
-land<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landscapeMetric_outputVCMsel.csv")
-hab20<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/crossedTableRaster_20m.csv")
-hab250<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/crossedTableRaster_250m.csv")
+land<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/output/landscapeMetric_outputVCMsel.csv")
+hab20<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/output/crossedTableRaster_20m.csv")
+hab250<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/output/crossedTableRaster_250m.csv")
 head(land)
 head(hab20)
 head(hab250)
@@ -133,7 +133,7 @@ df$landeEl250<-df$lande250+df$limForet250+df$ecotoneLP250
 head(df)
 df<-df[, -c("geometry.x","geometry.y")]
 
-write.csv(df, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landus_releve_gridMB.csv", row.names=FALSE) 
+write.csv(df, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus/output/landus_releve_gridMB.csv", row.names=FALSE) 
 ```
 
 
