@@ -1,0 +1,142 @@
+---
+title: "Extract_landuselandscape_grid_MB"
+author: "Jeremy Froidevaux"
+date: "2024-03-13"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls()) 
+```
+
+## Load libraries
+```{r, message=FALSE,warning=FALSE}
+library <- c("terra","ggplot2","grid","gridExtra","cowplot","landscapemetrics","data.table","maps",
+             "ggsn","dplyr","rworldmap","reshape2","sf","terra","tidyverse","purrr") 
+lapply(library, require, character.only = TRUE) 
+```
+
+## Data extraction
+
+### Part 1: Extract landuse proportion from ORION at local and landscape scales
+
+```{r}
+root <- "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/R_Functions/" 
+source(paste(root,"ExtractBufferRaster_KB_JF.r",sep="")) 
+
+extractLandUseRaster( dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/data/gis" ,  
+                                name.points = "grid_MB_lande",
+                                bw = c(20,250), #ajouter 20 m - 250 m  
+                                id = "id_grid",  
+                                dir.posEnvironmentalLayers = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif",  
+                                WorkingDirectory = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/") 
+```
+
+### Part 2: Extract data on landscape configurational and compositional diversity using ORION
+
+```{r}
+dir.posPoints = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/data/gis"  
+name.points = "grid_MB_lande"
+loc<-st_read(dsn = dir.posPoints, layer = name.points)
+loc <- st_transform(loc,crs=32632)
+dir.posEnvironmentalLayers = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif"
+orionrast<-rast(dir.posEnvironmentalLayers) 
+orionrast
+loc
+plot(orionrast)
+points(loc)
+list<-list_lsm() #Choose landscape metric 
+
+plm20 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 20, level= "landscape",metric=c("shdi","ed")) 
+plm250 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 250, level= "landscape",metric=c("shdi","ed")) 
+pcm20 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 20, level= "class",metric=c("ed")) 
+pcm250 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 250, level= "class",metric=c("ed")) 
+
+plm20$scale<-20 
+plm250$scale<-250
+pcm20$scale<-20 
+pcm250$scale<-250
+
+pcm20sel<-pcm20[pcm20$class %in% c("5"), ]
+pcm250sel<-pcm250[pcm250$class %in% c("5"), ]
+pcm20sel$metric[pcm20sel$metric == 'ed'] <- 'edl'
+pcm250sel$metric[pcm250sel$metric == 'ed'] <- 'edl'
+
+df_list <- list(plm20,plm250,pcm20sel,pcm250sel)
+mplm<-Reduce(function(x, y) merge(x, y, all=TRUE), df_list)
+
+div <- dcast(mplm, plot_id + scale~ metric, fun.aggregate = sum)
+
+div20<-subset(div,scale=="20")
+div20<-div20 %>% rename_with(~paste0(.x,"20"), c(ed,edl,shdi ))
+
+div250<-subset(div,scale=="250")
+div250<-div250 %>% rename_with(~paste0(.x,"250"), c(ed,edl,shdi ))
+
+df_list <- list(div20, div250)
+divf<-df_list %>% reduce(full_join, by='plot_id')
+divf<-divf %>% dplyr::select(-contains("scale"))
+colnames(divf)[colnames(divf) == "plot_id"] <- "id"
+
+write.csv(divf, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landscapeMetric_outputVCMsel.csv", row.names=FALSE) 
+
+```
+
+### Part 3: Merge datasets to get one single file 
+
+```{r}
+land<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landscapeMetric_outputVCMsel.csv")
+hab20<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/crossedTableRaster_20m.csv")
+hab250<-fread("/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/crossedTableRaster_250m.csv")
+head(land)
+head(hab20)
+head(hab250)
+str(land)
+land$id_grid<-land$id
+
+colnames(hab20)<-gsub("1_", "prairieM", colnames(hab20))
+colnames(hab20)<-gsub("2_", "foret", colnames(hab20))
+colnames(hab20)<-gsub("3_", "limForet", colnames(hab20))
+colnames(hab20)<-gsub("4_", "prairieS", colnames(hab20))
+colnames(hab20)<-gsub("5_", "lande", colnames(hab20))
+colnames(hab20)<-gsub("6_", "ecotoneLP", colnames(hab20))
+colnames(hab20)<-gsub("7_", "prairieA", colnames(hab20))
+colnames(hab20)<-gsub("8_", "rochersolnu", colnames(hab20))
+colnames(hab20)<-gsub("9_", "glacierneige", colnames(hab20))
+colnames(hab20)<-gsub("10_", "eau", colnames(hab20))
+colnames(hab20)<-gsub("0_", "urbain", colnames(hab20))
+
+colnames(hab250)<-gsub("1_", "prairieM", colnames(hab250))
+colnames(hab250)<-gsub("2_", "foret", colnames(hab250))
+colnames(hab250)<-gsub("3_", "limForet", colnames(hab250))
+colnames(hab250)<-gsub("4_", "prairieS", colnames(hab250))
+colnames(hab250)<-gsub("5_", "lande", colnames(hab250))
+colnames(hab250)<-gsub("6_", "ecotoneLP", colnames(hab250))
+colnames(hab250)<-gsub("7_", "prairieA", colnames(hab250))
+colnames(hab250)<-gsub("8_", "rochersolnu", colnames(hab250))
+colnames(hab250)<-gsub("9_", "glacierneige", colnames(hab250))
+colnames(hab250)<-gsub("10_", "eau", colnames(hab250))
+colnames(hab250)<-gsub("0_", "urbain", colnames(hab250))
+
+
+df0<-merge(land,hab20,by="id_grid")
+df<-merge(df0,hab250,by="id_grid")
+
+df$landeEl20<-df$lande20+df$limForet20
+df$landeEl250<-df$lande250+df$limForet250+df$ecotoneLP250
+head(df)
+df<-df[, -c("geometry.x","geometry.y")]
+
+write.csv(df, "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/landus/output/landus_releve_gridMB.csv", row.names=FALSE) 
+```
+
+
+
+
+
