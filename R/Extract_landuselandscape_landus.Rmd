@@ -1,17 +1,18 @@
 ---
-title: "Camera Trap - Représentativité des sites Mt Blanc - Data prep"
+title: "Extraction des données paysagères autour des sites landus"
 author: "Jeremy Froidevaux"
-date: "2023-11-07"
+date: "2024-12-01"
 output:
   html_document: default
   pdf_document: default
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus")
 rm(list=ls()) 
 ```
-
 
 ## Load libraries
 ```{r}
@@ -24,7 +25,7 @@ lapply(library, require, character.only = TRUE)
 ## Data manipulation with raster and shape files
 ### Open CameraTrap csv file (and landus csv file if needed)
 ```{r}
-releves = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
+releves = read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
 head(releves)
 #summary(factor(landus$ref_project))
 ```
@@ -52,8 +53,6 @@ plot(orionrast1)
 points(loc)
 outfile <- "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg/placetteveg_locL93.shp"
 st_write(loc, outfile, overwrite=TRUE)
-
-
 
 ```
 
@@ -134,10 +133,10 @@ write.csv(divf, "/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_descri
 ## Merge dataset
 ### ORION
 ```{r}
-releves = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
+releves = read.xlsx("data/releve_vegetation/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
 releves$id<-releves$plot_project
-orion<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/Orion_landuse.csv")
-div<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/ORION_landscapeMetric.csv")
+orion<-fread("output/Orion_landuse.csv")
+div<-fread("output/ORION_landscapeMetric.csv")
 
 colnames(orion)<-gsub("1_", "prairieM", colnames(orion))
 colnames(orion)<-gsub("2_", "foret", colnames(orion))
@@ -157,5 +156,5 @@ df<-merge(df0,orion,by="id")
 df$landeEl20<-df$lande20+df$limForet20+df$ecotoneLP20
 df$landeEl250<-df$lande250+df$limForet250+df$ecotoneLP250
 
-write.csv(df,"/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/landus_releves_Paysage_ORION.csv")
+write.csv(df,"output/landus_releves_Paysage_ORION.csv")
 ```

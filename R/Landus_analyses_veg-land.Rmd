@@ -6,7 +6,9 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,message=FALSE,warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Users/jeremyfroidevaux/Library/CloudStorage/GoogleDrive-jfroidevaux@creamontblanc.org/Drive partagés/prototool/herbiland/analyses/landus")
+rm(list=ls()) 
 ```
 
 ## Load libraries
@@ -18,13 +20,13 @@ lapply(library, require, character.only = TRUE)
 
 ## Merge dataset
 ```{r}
-dem<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/dem_outputVCMsel.csv")
-orion<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/landuse_orion_outputVCMsel.csv")
-div<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/landscapeMetric_outputVCMsel.csv")
-camtrap<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/camerainfo_20231113_sel.csv")
+dem<-fread("data/landscape/dem_outputVCMsel.csv")
+orion<-fread("data/landscape/landuse_orion_outputVCMsel.csv")
+div<-fread("data/landscape/landscapeMetric_outputVCMsel.csv")
+camtrap<-fread("data/landscape/camerainfo_20231113_sel.csv")
 colnames(camtrap)[which(names(camtrap) == "Station")] <- "id"
 
-landus<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/landus_20231109.csv")
+landus<-fread("data/releve_vegetation/landus_20231109.csv")
 landus<-subset(landus,landus$ref_project=="CAMERA")
 names(landus)[names(landus) == "id"] <- "other"
 names(landus)[names(landus) == "name_camera"] <- "id"
@@ -120,7 +122,7 @@ p11<-ggplot(df,aes(x=landeEl20,y=strata.5,colour=milieu))+geom_point(position = 
 legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 ppi <- 150
-png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_strata.png", width=12*ppi, height=16*ppi, res=ppi)
+png("figures/lande20_strata.png", width=12*ppi, height=16*ppi, res=ppi)
 p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,align = "v", ncol=3, nrow = 4, rel_heights = c(1, 1, 1, 1,1,1,1,1,1,1,1,1))
 plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 dev.off()
@@ -166,7 +168,7 @@ p5<-ggplot(df,aes(x=landeEl20,y=nPFG,colour=milieu))+geom_point(position = "jitt
 legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 ppi <- 150
-png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_canopy.png", width=9*ppi, height=6*ppi, res=ppi)
+png("plot/lande20_canopy.png", width=9*ppi, height=6*ppi, res=ppi)
 p_square<-plot_grid(p0,p1,p2,p3,p4,p5, align = "v", ncol=3, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1))
 plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 dev.off()
@@ -228,7 +230,7 @@ p11<-ggplot(df,aes(x=landeEl20,y=LCV,colour=milieu))+geom_point(position = "jitt
 legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 ppi <- 150
-png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_shrubspecies.png", width=12*ppi, height=5*ppi, res=ppi)
+png("plot/lande20_shrubspecies.png", width=12*ppi, height=5*ppi, res=ppi)
 p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11, align = "v", ncol=6, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1,1,1))
 plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 dev.off()
@@ -266,7 +268,7 @@ p3<-ggplot(df,aes(x=landeEl20,y=HG,colour=milieu))+geom_point(position = "jitter
 legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 ppi <- 150
-png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_herbspecies.png", width=6*ppi, height=6*ppi, res=ppi)
+png("/plot/lande20_herbspecies.png", width=6*ppi, height=6*ppi, res=ppi)
 p_square<-plot_grid(p0,p1,p2,p3, align = "v", ncol=2, nrow = 2, rel_heights = c(1, 1, 1, 1))
 plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 dev.off()
@@ -275,6 +277,7 @@ plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 #### Other
 ```{r}
 colourpers<-c('darkgreen','orange','lightblue','blue')
+
 #--------------
 # Lande stricto sensu
 #--------------
@@ -318,7 +321,7 @@ p9<-ggplot(df,aes(x=landeEl20,y=nb_RB,colour=milieu))+geom_point(position = "jit
 legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 ppi <- 150
-png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_other.png", width=15*ppi, height=12*ppi, res=ppi)
+png("plot/lande20_other.png", width=15*ppi, height=12*ppi, res=ppi)
 p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9, align = "v", ncol=5, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1,1,1,1,1))
 plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
 dev.off()
