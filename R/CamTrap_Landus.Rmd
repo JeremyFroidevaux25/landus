@@ -1,0 +1,326 @@
+---
+title: "CamTrap-Landus"
+author: "Jeremy Froidevaux"
+date: "2023-12-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message=FALSE,warning=FALSE)
+```
+
+## Load libraries
+```{r}
+library <- c("terra","ggplot2","grid","gridExtra","cowplot","landscapemetrics","data.table","maps",
+             "ggsn","dplyr","rworldmap","reshape2","sf","terra","tidyverse","purrr","plotly","happign") 
+lapply(library, require, character.only = TRUE) 
+```
+
+## Merge dataset
+```{r}
+dem<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/dem_outputVCMsel.csv")
+orion<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/landuse_orion_outputVCMsel.csv")
+div<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Landcover_output/landscapeMetric_outputVCMsel.csv")
+camtrap<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/camerainfo_20231113_sel.csv")
+colnames(camtrap)[which(names(camtrap) == "Station")] <- "id"
+
+landus<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/landus_20231109.csv")
+landus<-subset(landus,landus$ref_project=="CAMERA")
+names(landus)[names(landus) == "id"] <- "other"
+names(landus)[names(landus) == "name_camera"] <- "id"
+#landus$id<-replace(landus$id, is.na(landus$id), "loriaz1600Ouest")
+
+colnames(orion)<-gsub("1_", "prairieM", colnames(orion))
+colnames(orion)<-gsub("2_", "foret", colnames(orion))
+colnames(orion)<-gsub("3_", "limForet", colnames(orion))
+colnames(orion)<-gsub("4_", "prairieS", colnames(orion))
+colnames(orion)<-gsub("5_", "lande", colnames(orion))
+colnames(orion)<-gsub("6_", "ecotoneLP", colnames(orion))
+colnames(orion)<-gsub("7_", "prairieA", colnames(orion))
+colnames(orion)<-gsub("8_", "rochersolnu", colnames(orion))
+colnames(orion)<-gsub("9_", "glacierneige", colnames(orion))
+colnames(orion)<-gsub("10_", "eau", colnames(orion))
+colnames(orion)<-gsub("0_", "urbain", colnames(orion))
+
+df0<-merge(dem,div,by="id")
+df1<-merge(df0,orion,by="id")
+df2<-merge(df1,camtrap,by="id")
+df<-merge(df2,landus,by="id")
+
+df$landeEl20<-df$lande20+df$limForet20+df$ecotoneLP20
+df$landeEl250<-df$lande250+df$limForet250+df$ecotoneLP250
+```
+
+## Analyses
+
+### Prerequis
+```{r}
+df$strata.0<-as.numeric(df$strata.0)
+df$strata.1<-as.numeric(df$strata.1)
+df$strata.2<-as.numeric(df$strata.2)
+df$strata.3<-as.numeric(df$strata.3)
+df$strata.4<-as.numeric(df$strata.4)
+df$strata.5<-as.numeric(df$strata.5)
+
+```
+
+
+### % cover of strata
+```{r}
+colourpers<-c('darkgreen','orange','lightblue','blue')
+#--------------
+# Lande stricto sensu
+#--------------
+p0<-ggplot(df,aes(x=lande20,y=strata.0,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p1<-ggplot(df,aes(x=lande20,y=strata.1,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p2<-ggplot(df,aes(x=lande20,y=strata.2,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p3<-ggplot(df,aes(x=lande20,y=strata.3,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p4<-ggplot(df,aes(x=lande20,y=strata.4,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p5<-ggplot(df,aes(x=lande20,y=strata.5,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Lande elaragie
+#--------------
+p6<-ggplot(df,aes(x=landeEl20,y=strata.0,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+p7<-ggplot(df,aes(x=landeEl20,y=strata.1,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+p8<-ggplot(df,aes(x=landeEl20,y=strata.2,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+p9<-ggplot(df,aes(x=landeEl20,y=strata.3,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+p10<-ggplot(df,aes(x=landeEl20,y=strata.4,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+p11<-ggplot(df,aes(x=landeEl20,y=strata.5,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+
+
+#--------------
+# Save plot
+#--------------
+
+legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom"))
+ppi <- 150
+png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_strata.png", width=12*ppi, height=16*ppi, res=ppi)
+p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,align = "v", ncol=3, nrow = 4, rel_heights = c(1, 1, 1, 1,1,1,1,1,1,1,1,1))
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+dev.off()
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+
+
+```
+
+### Canopy height, heterogeneity and nPFG
+```{r}
+colourpers<-c('darkgreen','orange','lightblue','blue')
+#--------------
+# Lande stricto sensu
+#--------------
+p0<-ggplot(df,aes(x=lande20,y=hcan,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+p1<-ggplot(df,aes(x=lande20,y=heterog,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+p2<-ggplot(df,aes(x=lande20,y=nPFG,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+#--------------
+# Lande elaragie
+#--------------
+p3<-ggplot(df,aes(x=landeEl20,y=hcan,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+
+p4<-ggplot(df,aes(x=landeEl20,y=heterog,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+
+p5<-ggplot(df,aes(x=landeEl20,y=nPFG,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+  scale_colour_manual(values=colourpers)
+#--------------
+# Save plot
+#--------------
+legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom"))
+ppi <- 150
+png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_canopy.png", width=9*ppi, height=6*ppi, res=ppi)
+p_square<-plot_grid(p0,p1,p2,p3,p4,p5, align = "v", ncol=3, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1))
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+dev.off()
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+
+```
+
+
+### Relative abundance of (most abundant) shrub species
+```{r,out.width="150%"}
+colourpers<-c('darkgreen','orange','lightblue','blue')
+#--------------
+# Lande stricto sensu
+#--------------
+p0<-ggplot(df,aes(x=lande20,y=LRF,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p1<-ggplot(df,aes(x=lande20,y=LVU,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p2<-ggplot(df,aes(x=lande20,y=LVM,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p3<-ggplot(df,aes(x=lande20,y=LVVI,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p4<-ggplot(df,aes(x=lande20,y=LJC,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p5<-ggplot(df,aes(x=lande20,y=LCV,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Lande elaragie
+#--------------
+p6<-ggplot(df,aes(x=landeEl20,y=LRF,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p7<-ggplot(df,aes(x=landeEl20,y=LVU,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p8<-ggplot(df,aes(x=landeEl20,y=LVM,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p9<-ggplot(df,aes(x=landeEl20,y=LVVI,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p10<-ggplot(df,aes(x=landeEl20,y=LJC,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p11<-ggplot(df,aes(x=landeEl20,y=LCV,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Save plot
+#--------------
+legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom"))
+ppi <- 150
+png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_shrubspecies.png", width=12*ppi, height=5*ppi, res=ppi)
+p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11, align = "v", ncol=6, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1,1,1))
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+dev.off()
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+
+```
+
+
+### Relative abundance of herbaceous species
+```{r}
+colourpers<-c('darkgreen','orange','lightblue','blue')
+#--------------
+# Lande stricto sensu
+#--------------
+p0<-ggplot(df,aes(x=lande20,y=HF,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p1<-ggplot(df,aes(x=lande20,y=HG,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Lande elaragie
+#--------------
+p2<-ggplot(df,aes(x=landeEl20,y=HF,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p3<-ggplot(df,aes(x=landeEl20,y=HG,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Save plot
+#--------------
+legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom"))
+ppi <- 150
+png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_herbspecies.png", width=6*ppi, height=6*ppi, res=ppi)
+p_square<-plot_grid(p0,p1,p2,p3, align = "v", ncol=2, nrow = 2, rel_heights = c(1, 1, 1, 1))
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+dev.off()
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+```
+#### Other
+```{r}
+colourpers<-c('darkgreen','orange','lightblue','blue')
+#--------------
+# Lande stricto sensu
+#--------------
+p0<-ggplot(df,aes(x=lande20,y=nb_LT,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p1<-ggplot(df,aes(x=lande20,y=nb_MO,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p2<-ggplot(df,aes(x=lande20,y=nb_LC,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p3<-ggplot(df,aes(x=lande20,y=nb_VE,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p4<-ggplot(df,aes(x=lande20,y=nb_RB,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkorange")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+
+#--------------
+# Lande elaragie
+#--------------
+p5<-ggplot(df,aes(x=landeEl20,y=nb_LT,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p6<-ggplot(df,aes(x=landeEl20,y=nb_MO,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p7<-ggplot(df,aes(x=landeEl20,y=nb_LC,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p8<-ggplot(df,aes(x=landeEl20,y=nb_VE,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+p9<-ggplot(df,aes(x=landeEl20,y=nb_RB,colour=milieu))+geom_point(position = "jitter")+
+ geom_smooth(method = "loess",col="darkgreen")+theme(legend.position="none")+
+    scale_colour_manual(values=colourpers)
+#--------------
+# Save plot
+#--------------
+legend<- get_legend(  p1 +   guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom"))
+ppi <- 150
+png("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Plot/Vegetation/lande20_other.png", width=15*ppi, height=12*ppi, res=ppi)
+p_square<-plot_grid(p0,p1,p2,p3,p4,p5,p6,p7,p8,p9, align = "v", ncol=5, nrow = 2, rel_heights = c(1, 1, 1, 1,1,1,1,1,1,1))
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+dev.off()
+plot_grid(p_square, legend, ncol = 1, rel_heights = c(1, .1))
+```

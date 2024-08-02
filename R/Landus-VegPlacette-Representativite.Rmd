@@ -1,0 +1,161 @@
+---
+title: "Camera Trap - Représentativité des sites Mt Blanc - Data prep"
+author: "Jeremy Froidevaux"
+date: "2023-11-07"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls()) 
+```
+
+
+## Load libraries
+```{r}
+library <- c("terra","ggplot2","grid","gridExtra","cowplot","landscapemetrics","data.table","maps",
+             "ggsn","dplyr","rworldmap","reshape2","sf","terra","tidyverse","purrr","openxlsx")
+
+lapply(library, require, character.only = TRUE) 
+```
+
+## Data manipulation with raster and shape files
+### Open CameraTrap csv file (and landus csv file if needed)
+```{r}
+releves = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
+head(releves)
+#summary(factor(landus$ref_project))
+```
+
+### Transformation of latlong in vector and georeferenced data vizualization
+```{r}
+#All data
+lonlat<-cbind(releves$Longitude,releves$Latitude)
+crdref <- "+proj=longlat +datum=WGS84"
+pts <- vect(lonlat, crs=crdref)
+pts
+pts$id<-releves$plot_project
+class(pts)
+outfile <- "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg/placetteveg_locWGS84.shp"
+writeVector(pts, outfile, overwrite=TRUE)
+
+
+dir.posPoints = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg"  
+name.points = "placetteveg_locWGS84"
+pts<-st_read(dsn = dir.posPoints, layer = name.points)
+loc <- st_transform(pts,crs=32632)
+dir.posEnvironmentalLayers1 = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif"
+orionrast1<-rast(dir.posEnvironmentalLayers1)
+plot(orionrast1)
+points(loc)
+outfile <- "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg/placetteveg_locL93.shp"
+st_write(loc, outfile, overwrite=TRUE)
+
+
+
+```
+
+## Data extraction
+### Part 1: Extract landuse proportion from ORION at local and landscape scales
+
+```{r}
+library(lavaan)
+root <- "/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/Analysis/Functions/" 
+source(paste(root,"ExtractBufferRaster_KB_JF.r",sep="")) 
+
+extractLandUseRaster( dir.posPoints = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg",  
+                                name.points = "placetteveg_locL93",
+                                bw = c(20,250), #ajouter 20 m - 250 m  
+                                id = "id",  
+                                dir.posEnvironmentalLayers = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif",  
+                                WorkingDirectory = "/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/") 
+
+```
+
+### Part 2: Extract data on landscape configurational and compositional diversity using ORION
+
+```{r}
+dir.posPoints = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/Landus_placette_veg"  
+name.points = "placetteveg_locL93"
+loc<-st_read(dsn = dir.posPoints, layer = name.points)
+loc <- st_transform(loc,crs=32632)
+dir.posEnvironmentalLayers = "/Users/jeremyfroidevaux/Documents/Herbiland/GIS/ORION/LC_pred_CCVCMB_2806023_FINAL.tif"
+orionrast<-rast(dir.posEnvironmentalLayers) 
+orionrast
+loc
+plot(orionrast)
+points(loc)
+list<-list_lsm() #Choose landscape metric 
+
+plm20 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 20, level= "landscape",metric=c("shdi","ed")) 
+plm250 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 250, level= "landscape",metric=c("shdi","ed")) 
+pcm20 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 20, level= "class",metric=c("ed")) 
+pcm250 <- sample_lsm(orionrast, y = loc, shape = "circle", plot_id = loc$id,  
+                    size = 250, level= "class",metric=c("ed")) 
+
+plm20$scale<-20 
+plm250$scale<-250
+pcm20$scale<-20 
+pcm250$scale<-250
+
+pcm20sel<-pcm20[pcm20$class %in% c("5"), ]
+pcm250sel<-pcm250[pcm250$class %in% c("5"), ]
+pcm20sel$metric[pcm20sel$metric == 'ed'] <- 'edl'
+pcm250sel$metric[pcm250sel$metric == 'ed'] <- 'edl'
+
+df_list <- list(plm20,plm250,pcm20sel,pcm250sel)
+mplm<-Reduce(function(x, y) merge(x, y, all=TRUE), df_list)
+
+div <- dcast(mplm, plot_id + scale~ metric, fun.aggregate = sum)
+
+#ggplot(subset(rmplm, scale %in% 50))+
+#  geom_histogram(aes(x=ed))
+
+div20<-subset(div,scale=="20")
+div20<-div20 %>% rename_with(~paste0(.x,"20"), c(ed,edl,shdi ))
+
+div250<-subset(div,scale=="250")
+div250<-div250 %>% rename_with(~paste0(.x,"250"), c(ed,edl,shdi ))
+
+df_list <- list(div20, div250)
+divf<-df_list %>% reduce(full_join, by='plot_id')
+divf<-divf %>% dplyr::select(-contains("scale"))
+colnames(divf)[colnames(divf) == "plot_id"] <- "id"
+
+write.csv(divf, "/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/ORION_landscapeMetric.csv", row.names=FALSE) 
+
+```
+
+## Merge dataset
+### ORION
+```{r}
+releves = read.xlsx("/Users/jeremyfroidevaux/Documents/Herbiland/CameraTrap/saisieRELEVES_gpesFct_20220914_final.xlsx", sheet = "SURVEYS")
+releves$id<-releves$plot_project
+orion<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/Orion_landuse.csv")
+div<-fread("/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/ORION_landscapeMetric.csv")
+
+colnames(orion)<-gsub("1_", "prairieM", colnames(orion))
+colnames(orion)<-gsub("2_", "foret", colnames(orion))
+colnames(orion)<-gsub("3_", "limForet", colnames(orion))
+colnames(orion)<-gsub("4_", "prairieS", colnames(orion))
+colnames(orion)<-gsub("5_", "lande", colnames(orion))
+colnames(orion)<-gsub("6_", "ecotoneLP", colnames(orion))
+colnames(orion)<-gsub("7_", "prairieA", colnames(orion))
+colnames(orion)<-gsub("8_", "rochersolnu", colnames(orion))
+colnames(orion)<-gsub("9_", "glacierneige", colnames(orion))
+colnames(orion)<-gsub("10_", "eau", colnames(orion))
+colnames(orion)<-gsub("0_", "urbain", colnames(orion))
+
+df0<-merge(releves,div,by="id")
+df<-merge(df0,orion,by="id")
+
+df$landeEl20<-df$lande20+df$limForet20+df$ecotoneLP20
+df$landeEl250<-df$lande250+df$limForet250+df$ecotoneLP250
+
+write.csv(df,"/Users/jeremyfroidevaux/Documents/Herbiland/Landus/Sites_description/Data/landus_releves_Paysage_ORION.csv")
+```
